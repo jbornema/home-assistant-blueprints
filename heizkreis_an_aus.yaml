@@ -23,4 +23,3 @@ blueprint:
         selector:
           entity:
             domain: binary_sensor
-
