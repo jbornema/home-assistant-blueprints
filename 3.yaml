@@ -1,0 +1,91 @@
+blueprint:
+  name: Heizkreis an/aus
+  description: Custom control of Shelly 1 with temperature sensor and classic thermostat as input
+  domain: automation
+  input:
+    shelly_switch:
+      name: Shelly with temperature sensor
+      description: A shelly
+      selector:
+        entity:
+          domain: switch
+
+    shelly_temp:
+        name: Temperature sensor of shelly
+        description: A sensor that measures the temperature of the room
+        selector:
+          entity:
+            domain: sensor
+            
+    shelly_input:
+        name: Manual thermostat state
+        description: A sensor that measures the temperature of the room
+        selector:
+          entity:
+            domain: binary_sensor
+
+variables:
+  shelly_switch: !input shelly_switch
+  shelly_temp: !input shelly_temp
+  shelly_input: !shelly_input
+
+trigger:
+  - platform: time_pattern
+    minutes: /1
+
+action:
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_off
+        device_id: {{ device_id(shelly_switch) }}
+        entity_id: !input shelly_switch
+        domain: switch
+      - condition: state
+        entity_id: input_boolean.alle_thermostate_aktiv
+        state: 'on'
+      - condition: or
+        conditions:
+          - condition: numeric_state
+            entity_id: !input shelly_temp
+            below: input_number.min_temperatur
+          - condition: and
+            conditions:
+              - condition: numeric_state
+                entity_id: !input shelly_temp
+                below: input_number.max_temperatur
+              - type: is_powered
+                condition: device
+                device_id: {{ device_id(shelly_input) }}
+                entity_id: !input shelly_input
+                domain: binary_sensor
+      sequence:
+        - service: switch.turn_on
+          entity_id: !input shelly_switch
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: {{ device_id(shelly_switch) }}
+        entity_id: !input shelly_switch
+        domain: switch
+      - condition: state
+        entity_id: input_boolean.alle_thermostate_aktiv
+        state: 'on'
+      - condition: or
+        conditions:
+          - condition: numeric_state
+            entity_id: !input shelly_temp
+            above: input_number.max_temperatur
+          - condition: and
+            conditions:
+              - condition: numeric_state
+                entity_id: !input shelly_temp
+                above: input_number.min_temperatur
+              - type: is_not_powered
+                condition: device
+                device_id: {{ device_id(shelly_input) }}
+                entity_id: !input shelly_input
+                domain: binary_sensor
+      sequence:
+        - service: switch.turn_off
+          entity_id: !input shelly_switch
