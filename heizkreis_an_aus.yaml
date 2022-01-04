@@ -23,6 +23,4 @@ blueprint:
         selector:
           entity:
             domain: binary_sensor
-  trigger:
-    - platform: time_pattern
-      minutes: /1
+
