@@ -1,0 +1,25 @@
+blueprint:
+  name: Heizkreis an/aus
+  description: Custom control of Shelly 1 with temperature sensor and classic thermostat as input
+  domain: automation
+  input:
+    shelly_switch:
+      name: Shelly with temperature sensor
+      description: A shelly
+      selector:
+        entity:
+          domain: switch
+
+    shelly_temp:
+        name: Temperature sensor of shelly
+        description: A sensor that measures the temperature of the room
+        selector:
+          entity:
+            domain: sensor
+            
+    shelly_input:
+        name: Manual thermostat state
+        description: A sensor that measures the temperature of the room
+        selector:
+          entity:
+            domain: binary_sensor
