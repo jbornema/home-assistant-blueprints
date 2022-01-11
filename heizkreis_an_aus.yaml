@@ -26,6 +26,13 @@ blueprint:
             domain: binary_sensor
             device_class: power
 
+    min_temp:
+        name: Min. Temperature
+        description: If > 0 ignore manual thermostat and regulate to this temperature
+        selector:
+          entity:
+            domain: input_number
+            
 variables:
   shelly_switch: !input shelly_switch
   shelly_temp: !input shelly_temp
