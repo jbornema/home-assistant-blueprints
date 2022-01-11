@@ -29,6 +29,7 @@ blueprint:
     min_temp:
         name: Min. Temperature
         description: If > 0 ignore manual thermostat and regulate to this temperature
+        default: 0
         selector:
           entity:
             domain: input_number
