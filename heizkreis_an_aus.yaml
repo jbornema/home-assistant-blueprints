@@ -71,8 +71,8 @@ action:
                 device_id: '{{ device_id(shelly_input) }}'
                 entity_id: !input shelly_input
                 domain: binary_sensor
-              - "{{ (states(min_temp) | int) == 0 }}"
-          - "{{ (states(shelly_temp) | int) < (states(min_temp) | int) }}"
+              - "{{ (states(min_temp) | float) == 0 }}"
+          - "{{ (states(shelly_temp) | float) < (states(min_temp) | float) }}"
       sequence:
         - service: switch.turn_on
           entity_id: !input shelly_switch
@@ -102,7 +102,7 @@ action:
                 entity_id: !input shelly_input
                 domain: binary_sensor
               - "{{ (states(min_temp) | int) == 0 }}"
-          - "{{ (states(shelly_temp) | int) > (states(min_temp) | int) }}"
+          - "{{ (states(min_temp) | float) > 0 and (states(shelly_temp) | float) > (states(min_temp) | float) }}"
       sequence:
         - service: switch.turn_off
           entity_id: !input shelly_switch
