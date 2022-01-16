@@ -34,21 +34,19 @@ blueprint:
           entity:
             domain: input_number
             
-variables:
-  shelly_switch: !input shelly_switch
-  #shelly_temp: !input shelly_temp
-  shelly_input: !input shelly_input
-#  min_temp: !input min_temp
-
 trigger_variables:
-#  shelly_switch: !input shelly_switch
+  shelly_switch: !input shelly_switch
   shelly_temp: !input shelly_temp
-#  shelly_input: !input shelly_input
+  shelly_input: !input shelly_input
   min_temp: !input min_temp
 
 trigger:
   - platform: template
-    value_template: "{{ ((states(shelly_temp) | float) < (states(min_temp) | float)) }}"
+    value_template: >
+      {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and (((states(shelly_temp) | float) < (states('input_number.min_temperatur') | float))
+          or ((states(shelly_temp) | float) < (states('input_number.max_temperatur') | float) and is_state(shelly_input,'on') and (states(min_temp) | float) == 0)
+          or ((states(shelly_temp) | float) < (states(min_temp) | float))) }}
     id: turn_on
     for: '00:00:03'
    
