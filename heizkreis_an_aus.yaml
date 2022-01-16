@@ -51,7 +51,7 @@ trigger:
         )
       %}true{% endif %}
     id: turn_on
-    for: '00:00:10'
+    for: '00:00:02'
     
   - platform: template
     value_template: >-
@@ -63,7 +63,7 @@ trigger:
         )
       %}true{% endif %}
     id: turn_off
-    for: '00:00:10'
+    for: '00:00:02'
     
 action:
   - choose:
