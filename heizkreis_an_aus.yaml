@@ -29,38 +29,48 @@ blueprint:
     min_temp:
         name: Min. Temperature
         description: If > 0 ignore manual thermostat and regulate to this temperature
-        default:
+        default: 0
         selector:
           entity:
             domain: input_number
             
-variables:
+trigger_variables:
   shelly_switch: !input shelly_switch
   shelly_temp: !input shelly_temp
   shelly_input: !input shelly_input
   min_temp: !input min_temp
 
 trigger:
-  - platform: time_pattern
-    minutes: /1
-
-action:
-  - choose:
-# Turn on
-    - conditions: >-
-        {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on')
-          and (((states(shelly_temp) | float) < (states('input_number.min_temperatur') | float))
-            or ((states(shelly_temp) | float) < (states('input_number.max_temperatur') | float) and is_state(shelly_input,'on') and (states(min_temp) | float) == 0)
-            or ((states(shelly_temp) | float) < (states(min_temp) | float))) }}
-      sequence:
-        - service: switch.turn_on
-          entity_id: !input shelly_switch
-# Turn off
-    - conditions: >-
+  - platform: template
+    value_template: >
+      {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and (((states(shelly_temp) | float) < (states('input_number.min_temperatur') | float))
+          or ((states(shelly_temp) | float) < (states('input_number.max_temperatur') | float) and is_state(shelly_input,'on') and (states(min_temp) | float) == 0)
+          or ((states(shelly_temp) | float) < (states(min_temp) | float))) }}
+    id: turn_on
+    for: '00:00:03'
+  - platform: template
+    value_template: >
         {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
           and ((states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
             or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float == 0)
             or (states(min_temp) | float > 0 and states(shelly_temp) | float >= states(min_temp) | float)) }}
+    id: turn_off
+    for: '00:00:03'
+   
+action:
+  - choose:
+# Turn on
+    - conditions:
+      - condition: trigger
+        id: turn_on
+      sequence:
+        - service: switch.turn_on
+          entity_id: !input shelly_switch
+# Turn off
+    - conditions:
+      - condition: trigger
+        id: turn_off
       sequence:
         - service: switch.turn_off
           entity_id: !input shelly_switch
