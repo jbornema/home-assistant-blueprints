@@ -42,7 +42,7 @@ variables:
 
 trigger_variables:
 #  shelly_switch: !input shelly_switch
-#  shelly_temp: !input shelly_temp
+  shelly_temp: !input shelly_temp
 #  shelly_input: !input shelly_input
   min_temp: !input min_temp
 
