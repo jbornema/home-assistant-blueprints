@@ -36,7 +36,7 @@ blueprint:
             
 variables:
   shelly_switch: !input shelly_switch
-  shelly_temp: !input shelly_temp
+  #shelly_temp: !input shelly_temp
   shelly_input: !input shelly_input
 #  min_temp: !input min_temp
 
@@ -48,8 +48,7 @@ trigger_variables:
 
 trigger:
   - platform: template
-    value_template: >-
-      {{ ((states(shelly_temp) | float) < (states(min_temp) | float)) }}
+    value_template: "{{ ((states(shelly_temp) | float) < (states(min_temp) | float)) }}"
     id: turn_on
     for: '00:00:03'
    
