@@ -1,0 +1,64 @@
+blueprint:
+  name: Heizkreis an/aus
+  description: Shelly 1 with addon temperature sensor and classic thermostat as input
+  domain: automation
+  input:
+    shelly_switch:
+      name: Shelly
+      description: Shelly with temperature sensor
+      selector:
+        entity:
+          domain: switch
+
+    shelly_temp:
+        name: Temperature
+        description: A sensor that measures the temperature of the room
+        selector:
+          entity:
+            domain: sensor
+            device_class: temperature
+            
+    shelly_input:
+        name: Thermostat
+        description: Thermostat connected to shelly input
+        selector:
+          entity:
+            domain: binary_sensor
+            device_class: power
+
+    min_temp:
+        name: Min. Temperature
+        description: If > 0 ignore manual thermostat and regulate to this temperature
+        default: 0
+        selector:
+          entity:
+            domain: input_number
+            
+variables:
+  shelly_switch: !input shelly_switch
+  shelly_temp: !input shelly_temp
+  shelly_input: !input shelly_input
+#  min_temp: !input min_temp
+
+trigger_variables:
+#  shelly_switch: !input shelly_switch
+#  shelly_temp: !input shelly_temp
+#  shelly_input: !input shelly_input
+  min_temp: !input min_temp
+
+trigger:
+  - platform: template
+    value_template: >-
+      {{ ((states(shelly_temp) | float) < (states(min_temp) | float)) }}
+    id: turn_on
+    for: '00:00:03'
+   
+action:
+  - choose:
+# Turn on
+    - conditions:
+      - condition: trigger
+        id: turn_on
+      sequence:
+        - service: switch.turn_on
+          entity_id: !input shelly_switch
