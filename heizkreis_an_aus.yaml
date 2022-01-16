@@ -47,14 +47,20 @@ trigger:
 action:
   - choose:
 # Turn on
-    - conditions: >
-      {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on')
-        and (((states(shelly_temp) | float) < (states('input_number.min_temperatur') | float))
-          or ((states(shelly_temp) | float) < (states('input_number.max_temperatur') | float) and is_state(shelly_input,'on') and (states(min_temp) | float) == 0)
-          or ((states(shelly_temp) | float) < (states(min_temp) | float))) }}
+    - conditions: >-
+        {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on')
+          and (((states(shelly_temp) | float) < (states('input_number.min_temperatur') | float))
+            or ((states(shelly_temp) | float) < (states('input_number.max_temperatur') | float) and is_state(shelly_input,'on') and (states(min_temp) | float) == 0)
+            or ((states(shelly_temp) | float) < (states(min_temp) | float))) }}
+      sequence:
+        - service: switch.turn_on
+          entity_id: !input shelly_switch
 # Turn off
-    - conditions: >
-      {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
-        and ((states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
-          or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float == 0)
-          or (states(min_temp) | float > 0 and states(shelly_temp) | float >= states(min_temp) | float)) }}
+    - conditions: >-
+        {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
+          and ((states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
+            or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float == 0)
+            or (states(min_temp) | float > 0 and states(shelly_temp) | float >= states(min_temp) | float)) }}
+      sequence:
+        - service: switch.turn_off
+          entity_id: !input shelly_switch
