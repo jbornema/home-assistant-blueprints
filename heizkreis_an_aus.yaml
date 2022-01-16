@@ -41,68 +41,43 @@ variables:
   min_temp: !input min_temp
 
 trigger:
-  - platform: time_pattern
-    minutes: /1
-
+  - platform: template
+    value_template: >-
+      {% if is_state('switch.shelly_switch','off')
+        and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and ((states(shelly_temp) | float < states('input_number.min_temperatur') | float)
+          or (states(shelly_temp) | float < states('input_number.max_temperatur') | float and is_state(shelly_input,'on') and states(min_temp) | float == 0)
+          or (states(shelly_temp) | float < states(min_temp) | float)
+        )
+      %}true{% endif %}
+    id: turn_on
+    for: '00:00:10'
+    
+  - platform: template
+    value_template: >-
+      {% if is_state('switch.shelly_switch','on')
+        and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and ((states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
+          or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float == 0)
+          or (states(min_temp) | float > 0 and states(shelly_temp) | float >= states(min_temp) | float)
+        )
+      %}true{% endif %}
+    id: turn_off
+    for: '00:00:10'
+    
 action:
   - choose:
 # Turn on
     - conditions:
-      - condition: device
-        type: is_off
-        device_id: '{{ device_id(shelly_switch) }}'
-        entity_id: !input shelly_switch
-        domain: switch
-      - condition: state
-        entity_id: input_boolean.alle_thermostate_aktiv
-        state: 'on'
-      - condition: or
-        conditions:
-          - condition: numeric_state
-            entity_id: !input shelly_temp
-            below: input_number.min_temperatur
-          - condition: and
-            conditions:
-              - condition: numeric_state
-                entity_id: !input shelly_temp
-                below: input_number.max_temperatur
-              - type: is_powered
-                condition: device
-                device_id: '{{ device_id(shelly_input) }}'
-                entity_id: !input shelly_input
-                domain: binary_sensor
-              - "{{ (states(min_temp) | float) == 0 }}"
-          - "{{ (states(shelly_temp) | float) < (states(min_temp) | float) }}"
+      - condition: trigger
+        id: turn_on
       sequence:
         - service: switch.turn_on
           entity_id: !input shelly_switch
 # Turn off
     - conditions:
-      - condition: device
-        type: is_on
-        device_id: '{{ device_id(shelly_switch) }}'
-        entity_id: !input shelly_switch
-        domain: switch
-      - condition: state
-        entity_id: input_boolean.alle_thermostate_aktiv
-        state: 'on'
-      - condition: or
-        conditions:
-          - condition: numeric_state
-            entity_id: !input shelly_temp
-            above: input_number.max_temperatur
-          - condition: and
-            conditions:
-              - condition: numeric_state
-                entity_id: !input shelly_temp
-                above: input_number.min_temperatur
-              - type: is_not_powered
-                condition: device
-                device_id: '{{ device_id(shelly_input) }}'
-                entity_id: !input shelly_input
-                domain: binary_sensor
-              - "{{ (states(min_temp) | int) == 0 }}"
-          - "{{ (states(min_temp) | float) > 0 and (states(shelly_temp) | float) > (states(min_temp) | float) }}"
+      - condition: trigger
+        id: turn_off
       sequence:
         - service: switch.turn_off
           entity_id: !input shelly_switch
