@@ -39,7 +39,7 @@ trigger_variables:
   shelly_temp: !input shelly_temp
   shelly_input: !input shelly_input
   min_temp: !input min_temp
-
+ 
 trigger:
   - platform: template
     value_template: >-
