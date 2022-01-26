@@ -1,0 +1,107 @@
+alias: Pelletofen Heizanforderung
+description: ''
+trigger:
+  - platform: template
+    value_template: |
+      {{ is_state('switch.pelletofen','on') }}
+    id: pelletofen_gestartet
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: timer.pelletofen_start_timeout
+    id: pelletofen_start_timeout
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: timer.pelletofen_problem_timeout
+    id: pelletofen_problem_timeout
+  - platform: template
+    value_template: >
+      {{ states('input_datetime.pelletofen_start_time') < states('sensor.time')
+      < states('input_datetime.pelletofen_stop_time') and
+      is_state('switch.pelletofen','off') and
+      states('sensor.pelletofen_temperature_3') | float <
+      states('input_number.min_temperatur_pufferspeicher') | float }}
+    id: pelletofen_start
+  - platform: template
+    value_template: >
+      {{ is_state('switch.pelletofen','on') and
+      states('sensor.pelletofen_temperature_3') | float >
+      states('input_number.max_temperatur_pufferspeicher') | float }}
+    id: pelletofen_stop
+  - platform: template
+    value_template: >
+      {{ is_state('switch.pelletofen','on') and
+      is_state('timer.pelletofen_start_timeout','idle') and
+      is_state('timer.pelletofen_problem_timeout','idle') and
+      states('sensor.pelletofen_temperature') | float < 65 }}
+    id: pelletofen_brennt_nicht_mehr
+    for: '00:10:00'
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: pelletofen_start
+        sequence:
+          - service: switch.turn_on
+            entity_id: switch.pelletofen
+      - conditions:
+          - condition: trigger
+            id: pelletofen_stop
+        sequence:
+          - service: switch.turn_off
+            entity_id: switch.pelletofen
+      - conditions:
+          - condition: trigger
+            id:
+              - pelletofen_brennt_nicht_mehr
+              - pelletofen_problem_timeout
+          - condition: template
+            value_template: >
+              {{ is_state('switch.pelletofen','on') and
+              is_state('timer.pelletofen_start_timeout','idle') and
+              is_state('timer.pelletofen_problem_timeout','idle') and
+              states('sensor.pelletofen_temperature') | float < 65 }}
+        sequence:
+          - service: timer.start
+            data:
+              duration: '00:60:00'
+            target:
+              entity_id: timer.pelletofen_problem_timeout
+          - service: notify.mobile_app_sm_g781b
+            data:
+              title: Keine Pellets mehr!
+              message: Pellets bitte nachfüllen!
+          - service: notify.persistent_notification
+            data:
+              title: Keine Pellets mehr!
+              message: Pellets bitte nachfüllen!
+      - conditions:
+          - condition: trigger
+            id: pelletofen_gestartet
+        sequence:
+          - service: timer.start
+            data:
+              duration: '00:10:00'
+            target:
+              entity_id: timer.pelletofen_start_timeout
+      - conditions:
+          - condition: trigger
+            id: pelletofen_start_timeout
+          - condition: template
+            value_template: >
+              {{ is_state('switch.pelletofen','on') and
+              states('sensor.pelletofen_temperature') | float < 30 }}
+        sequence:
+          - service: notify.mobile_app_sm_g781b
+            data:
+              title: Pelletofen brennt nicht!
+              message: Ofen bitte reinigen!
+          - service: notify.persistent_notification
+            data:
+              message: Ofen bitte reinigen!
+              title: Pelletofen brennt nicht!
+    default: []
+mode: queued
+max: 10
