@@ -43,7 +43,7 @@ trigger_variables:
 trigger:
   - platform: template
     value_template: >
-      {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on')
+      {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on') and states('sensor.pelletofen_temperature_3') | float >= states('input_number.min_temperatur_pufferspeicher') | float
         and (
              (states(shelly_temp) | float < states('input_number.min_temperatur') | float)
           or (states(shelly_temp) | float < states('input_number.max_temperatur') | float and is_state(shelly_input,'on') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
@@ -58,6 +58,7 @@ trigger:
                (states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
             or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
             or (states(min_temp) | float > states('input_number.min_temperatur') | float and states(shelly_temp) | float >= states(min_temp) | float)
+            or states('sensor.pelletofen_temperature_3') | float < states('input_number.min_temperatur_pufferspeicher') | float
           ) }}
     id: turn_off
   - platform: template
