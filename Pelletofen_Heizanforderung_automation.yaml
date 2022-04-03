@@ -26,7 +26,7 @@ trigger:
   - platform: template
     value_template: >
       {{ is_state('switch.pelletofen','on') and
-      states('sensor.pelletofen_temperature_3') | float >
+      states('sensor.pelletofen_temperature_3') | float >=
       states('input_number.max_temperatur_pufferspeicher') | float }}
     id: pelletofen_stop
   - platform: template
@@ -34,9 +34,10 @@ trigger:
       {{ is_state('switch.pelletofen','on') and
       is_state('timer.pelletofen_start_timeout','idle') and
       is_state('timer.pelletofen_problem_timeout','idle') and
-      states('sensor.pelletofen_temperature') | float < 65 }}
+      states('sensor.pelletofen_temperature_change_over_10_minutes') | float <
+      -2.0 }}
     id: pelletofen_brennt_nicht_mehr
-    for: '00:10:00'
+    for: '00:15:00'
 condition: []
 action:
   - choose:
@@ -62,7 +63,8 @@ action:
               {{ is_state('switch.pelletofen','on') and
               is_state('timer.pelletofen_start_timeout','idle') and
               is_state('timer.pelletofen_problem_timeout','idle') and
-              states('sensor.pelletofen_temperature') | float < 65 }}
+              states('sensor.pelletofen_temperature_change_over_10_minutes') |
+              float < -2.0 }}
         sequence:
           - service: timer.start
             data:
@@ -92,7 +94,8 @@ action:
           - condition: template
             value_template: >
               {{ is_state('switch.pelletofen','on') and
-              states('sensor.pelletofen_temperature') | float < 30 }}
+              states('sensor.pelletofen_temperature_change_over_10_minutes') |
+              float < 5.0 }}
         sequence:
           - service: notify.mobile_app_sm_g781b
             data:
