@@ -21,7 +21,7 @@ trigger:
       {{ states('input_datetime.pelletofen_start_time') < states('sensor.time')
       < states('input_datetime.pelletofen_stop_time') and
       is_state('switch.pelletofen','off') and
-      states('sensor.pelletofen_temperature_3') | float <
+      states('sensor.pelletofen_temperature_3') | float(100) <
       states('input_number.min_temperatur_pufferspeicher') | float }}
     id: pelletofen_start
     for: '00:01:00'
@@ -40,7 +40,7 @@ trigger:
       states('sensor.pelletofen_temperature_change_over_10_minutes') | float <
       -2.0 }}
     id: pelletofen_brennt_nicht_mehr
-    for: '00:01:00'
+    for: '00:15:00'
 condition: []
 action:
   - choose:
