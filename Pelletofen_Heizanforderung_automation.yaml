@@ -24,12 +24,14 @@ trigger:
       states('sensor.pelletofen_temperature_3') | float <
       states('input_number.min_temperatur_pufferspeicher') | float }}
     id: pelletofen_start
+    for: '00:01:00'
   - platform: template
     value_template: >
       {{ is_state('switch.pelletofen','on') and
       states('sensor.pelletofen_temperature_3') | float >=
       states('input_number.max_temperatur_pufferspeicher') | float }}
     id: pelletofen_stop
+    for: '00:01:00'
   - platform: template
     value_template: >
       {{ is_state('switch.pelletofen','on') and
@@ -38,7 +40,7 @@ trigger:
       states('sensor.pelletofen_temperature_change_over_10_minutes') | float <
       -2.0 }}
     id: pelletofen_brennt_nicht_mehr
-    for: '00:15:00'
+    for: '00:01:00'
 condition: []
 action:
   - choose:
