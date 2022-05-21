@@ -43,7 +43,8 @@ trigger_variables:
 trigger:
   - platform: template
     value_template: >
-      {{ is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on') and states('sensor.pelletofen_temperature_3') | float >= states('input_number.min_temperatur_pufferspeicher') | float
+      {{ states('sensor.time')[3:5] | int % 20 and 
+        is_state(shelly_switch,'off') and is_state('input_boolean.alle_thermostate_aktiv','on') and states('sensor.pelletofen_temperature_3') | float >= states('input_number.min_temperatur_pufferspeicher') | float
         and (
              (states(shelly_temp) | float < states('input_number.min_temperatur') | float)
           or (states(shelly_temp) | float < states('input_number.max_temperatur') | float and is_state(shelly_input,'on') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
@@ -53,29 +54,30 @@ trigger:
     for: '00:15:00'
   - platform: template
     value_template: >
-        {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
-          and (
-               (states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
-            or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
-            or (states(min_temp) | float > states('input_number.min_temperatur') | float and states(shelly_temp) | float >= states(min_temp) | float)
-            or states('sensor.pelletofen_temperature_3') | float < states('input_number.min_temperatur_pufferspeicher') | float
-          ) }}
+      {{ states('sensor.time')[3:5] | int % 2 and 
+        is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and (
+             (states(shelly_temp) | float >= states('input_number.max_temperatur') | float)
+          or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
+          or (states(min_temp) | float > states('input_number.min_temperatur') | float and states(shelly_temp) | float >= states(min_temp) | float)
+          or states('sensor.pelletofen_temperature_3') | float < states('input_number.min_temperatur_pufferspeicher') | float
+        ) }}
     id: turn_off
   - platform: template
     value_template: >
-        {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
-          and (
-               (states(shelly_temp) | float >= states('input_number.max_temperatur') | float - 0.5)
-            or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
-            or (states(min_temp) | float > states('input_number.min_temperatur') | float and states(shelly_temp) | float >= states(min_temp) | float - 0.5)
-          ) }}
+      {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and (
+             (states(shelly_temp) | float >= states('input_number.max_temperatur') | float - 0.5)
+          or (states(shelly_temp) | float >= states('input_number.min_temperatur') | float and is_state(shelly_input,'off') and states(min_temp) | float <= states('input_number.min_temperatur') | float)
+          or (states(min_temp) | float > states('input_number.min_temperatur') | float and states(shelly_temp) | float >= states(min_temp) | float - 0.5)
+        ) }}
     id: turn_off_early
     for: '00:15:00'
   - platform: template
     value_template: >
-        {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
-          and states(min_temp) | float > states('input_number.min_temperatur') | float
-        }}
+      {{ is_state(shelly_switch,'on') and is_state('input_boolean.alle_thermostate_aktiv','on')
+        and states(min_temp) | float > states('input_number.min_temperatur') | float
+      }}
     id: turn_off_period
     for: '00:30:00'
    
