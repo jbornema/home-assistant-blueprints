@@ -17,21 +17,21 @@ trigger:
       entity_id: timer.pelletofen_problem_timeout
     id: pelletofen_problem_timeout
   - platform: template
-    value_template: >
-      {{ states('input_datetime.pelletofen_start_time') < states('sensor.time')
+    value_template: |
+      {{ states('sensor.time')[3:5] | int % 2 == 0 and 
+      states('input_datetime.pelletofen_start_time') < states('sensor.time')
       < states('input_datetime.pelletofen_stop_time') and
       is_state('switch.pelletofen','off') and
       states('sensor.pelletofen_temperature_3') | float(100) <
       states('input_number.min_temperatur_pufferspeicher') | float }}
     id: pelletofen_start
-    for: '00:01:00'
   - platform: template
     value_template: >
-      {{ is_state('switch.pelletofen','on') and
-      states('sensor.pelletofen_temperature_3') | float >=
+      {{ states('sensor.time')[3:5] | int % 2 == 0 and 
+      is_state('switch.pelletofen','on') and
+      states('sensor.pelletofen_temperature_3') | float(0) >=
       states('input_number.max_temperatur_pufferspeicher') | float }}
     id: pelletofen_stop
-    for: '00:01:00'
   - platform: template
     value_template: >
       {{ is_state('switch.pelletofen','on') and
