@@ -1,39 +1,48 @@
 alias: Klima Wohnzimmer
-description: ''
+description: ""
 trigger:
   - platform: template
     id: start_klima
     value_template: >-
-      {{ is_state('binary_sensor.klima_wohnzimmer_wasser_input', 'off') and
-      states('sensor.time')[3:5] | int % 2 == 0 and
-      states('input_datetime.climate_start_time') < states('sensor.time') <
-      states('input_datetime.climate_stop_time') and
-      is_state('climate.wohnzimmer', 'off') and
+      {{ states('sensor.time')[3:5] | int % 2 == 0 and (
+      is_state('input_boolean.climate_wohnzimmer_automation_running', 'off') and
+      ((is_state('climate.wohnzimmer', 'cool') and
+      is_state('timer.timer_climate_wohnzimmer_start_failed_timeout', 'idle'))
+      or (states('binary_sensor.klima_wohnzimmer_wasser_input') in ('off',
+      'unavailable') and states('input_datetime.climate_start_time') <=
+      states('sensor.time') < states('input_datetime.climate_stop_time') and
+      states('climate.wohnzimmer') in ('off', 'unavailable') and
+      ((is_state('input_boolean.wohnzimmer_thermostat_toggle', 'on') and
+      is_state('input_boolean.alle_thermostate_aktiv', 'off') and
+      is_state('binary_sensor.wohnzimmer_thermostat_input', 'off')) or
+      ((is_state('input_boolean.wohnzimmer_thermostat_toggle', 'off') or
+      is_state('input_boolean.alle_thermostate_aktiv', 'on')) and
       states('sensor.wohnzimmer_thermostat_temperature') | float(0) >
-      states('input_number.climate_wohnzimmer_temperature') | float(30) + 0.5 }}
+      states('input_number.climate_wohnzimmer_temperature') | float(30) +
+      0.2))))) }}
   - platform: template
     id: stop_klima
     value_template: >-
-      {{ states('sensor.time')[3:5] | int % 2 == 0 and
-      (is_state('binary_sensor.klima_wohnzimmer_wasser_input', 'on') or (
-      (not(states('input_datetime.climate_start_time') < states('sensor.time') <
-      states('input_datetime.climate_stop_time')) or
-      (is_state('climate.wohnzimmer', 'cool') and
+      {{ states('sensor.time')[3:5] | int % 2 == 0 and (
+      (is_state('input_boolean.climate_wohnzimmer_automation_running', 'on') and
+      is_state('climate.wohnzimmer', 'off') and
+      is_state('timer.timer_climate_wohnzimmer_start_failed_timeout', 'idle'))
+      or (is_state('climate.wohnzimmer', 'cool') and
+      (is_state('binary_sensor.klima_wohnzimmer_wasser_input', 'on') or
+      (not(states('input_datetime.climate_start_time') <= states('sensor.time')
+      < states('input_datetime.climate_stop_time')) or (
       states('sensor.wohnzimmer_thermostat_temperature') | float(30) <=
-      states('input_number.climate_wohnzimmer_temperature') | float(0))))) }}
+      states('input_number.climate_wohnzimmer_temperature') | float(0)))))) }}
   - platform: template
     id: update_klima
     value_template: >-
       {{ states('sensor.time')[3:5] | int % 2 == 0 and
       is_state('climate.wohnzimmer', 'cool') and
-      ((state_attr('climate.wohnzimmer', 'current_temperature') | int(20) -
+      (((state_attr('climate.wohnzimmer', 'current_temperature') | int(20) -
       states('input_number.climate_wohnzimmer_cooling') | int(0),
-      state_attr('climate.wohnzimmer', 'min_temp') | int(16)) | max  !=
-      state_attr('climate.wohnzimmer', 'temperature') | int(20) or
-      (state_attr('climate.wohnzimmer', 'current_temperature') | int(20) -
-      states('input_number.climate_wohnzimmer_cooling') | int(0),
+      state_attr('climate.wohnzimmer', 'min_temp') | int(16)) | max),
       state_attr('climate.wohnzimmer', 'max_temp') | int(31)) | min  !=
-      state_attr('climate.wohnzimmer', 'temperature') | int(20)) }}
+      state_attr('climate.wohnzimmer', 'temperature') | int(20) }}
   - platform: template
     id: increase_water_boost
     value_template: >-
@@ -71,17 +80,16 @@ trigger:
       {{ is_state('climate.wohnzimmer', 'cool') and
       is_state('switch.klima_wohnzimmer_wasser', 'off') and
       is_state('timer.climate_wohnzimmer_wasser_timeout', 'idle') and
-      ((state_attr('switch.klimaanlage', 'current_consumption') | float(0) > 440
-      ) or states('input_number.climate_wohnzimmer_wasser_delay') | int(0) >
-      1)}}
+      ((states('sensor.klimaanlage_energy_power') | float(0) > 440 ) or
+      states('input_number.climate_wohnzimmer_wasser_delay') | int(0) > 1)}}
   - platform: template
     id: change_water
     value_template: >-
       {{ is_state('climate.wohnzimmer', 'cool') and
       is_state('input_boolean.climate_wohnzimmer_wasser_delay_change', 'on') and
-      state_attr('switch.klimaanlage', 'current_consumption') | float(0) > 440
-      and states('sensor.climate_whohnzimmer_consumption_current_change') |
-      float(0) | abs >= 5.0 }}
+      states('sensor.klimaanlage_energy_power') | float(0) > 440 and
+      states('sensor.climate_whohnzimmer_consumption_current_change') | float(0)
+      | abs >= 5.0 }}
   - platform: event
     id: clear_boosted
     event_type: timer.finished
@@ -89,20 +97,27 @@ trigger:
       entity_id: timer.climate_wohnzimmer_wasser_timeout
   - platform: template
     id: water_full
-    value_template: '{{ is_state(''binary_sensor.klima_wohnzimmer_wasser_input'', ''on'') }}'
+    value_template: "{{ is_state('binary_sensor.klima_wohnzimmer_wasser_input', 'on') }}"
   - platform: state
     id: water_idle
     entity_id:
       - timer.climate_wohnzimmer_wasser_timeout
     from: active
     to: idle
-    for: '00:00:01'
+    for: "00:00:01"
+  - platform: template
+    id: climate_reload
+    value_template: >-
+      {{ states('sensor.time')[3:5] | int % 2 == 0 and
+      is_state('climate.wohnzimmer', 'unavailable') }}
+  - platform: event
+    id: check_start_climate_failed
+    event_type: timer.finished
+    event_data:
+      entity_id: timer.timer_climate_wohnzimmer_start_failed_timeout
   - platform: homeassistant
     id: ha_start
     event: start
-  - platform: event
-    event_type: homeassistant_started
-    id: ha_started
 action:
   - choose:
       - conditions:
@@ -112,16 +127,51 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: '{{ is_state(''switch.klimaanlage'', ''off'') }}'
+                    value_template: "{{ is_state('switch.klimaanlage', 'off') }}"
                 sequence:
                   - service: switch.turn_on
                     data: {}
                     target:
                       entity_id: switch.klimaanlage
-                  - delay: '00:00:30'
+                  - delay: "00:00:30"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{
+                      (is_state('input_boolean.climate_wohnzimmer_automation_running',
+                      'off') and is_state('climate.wohnzimmer', 'cool') and
+                      is_state('timer.timer_climate_wohnzimmer_start_failed_timeout',
+                      'idle')) or
+                      (is_state('input_boolean.wohnzimmer_thermostat_toggle',
+                      'on') and is_state('input_boolean.alle_thermostate_aktiv',
+                      'off')) }}
+                sequence:
+                  - service: input_number.set_value
+                    data:
+                      value: >-
+                        {{ states('sensor.wohnzimmer_thermostat_temperature') |
+                        float(0) - 0.2 }}
+                    target:
+                      entity_id: input_number.climate_wohnzimmer_temperature
+          - service: timer.start
+            target:
+              entity_id: timer.timer_climate_wohnzimmer_start_failed_timeout
+            data:
+              duration: "00:01:00"
+          - service: climate.set_swing_mode
+            data:
+              swing_mode: "off"
+            target:
+              entity_id: climate.wohnzimmer
           - service: climate.set_hvac_mode
             data:
               hvac_mode: cool
+            target:
+              entity_id: climate.wohnzimmer
+          - service: climate.set_swing_mode
+            data:
+              swing_mode: "off"
             target:
               entity_id: climate.wohnzimmer
           - service: switch.turn_off
@@ -154,6 +204,49 @@ action:
               value: 0
             target:
               entity_id: input_number.climate_wohnzimmer_wasser_delay_change_count
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ states('input_number.climate_wohnzimmer_swing') |
+                      int(0) > 0 }}
+                sequence:
+                  - delay: "00:00:05"
+                  - service: climate.set_swing_mode
+                    data:
+                      swing_mode: "on"
+                    target:
+                      entity_id: climate.wohnzimmer
+                  - service: climate.set_swing_mode
+                    data:
+                      swing_mode: "on"
+                    target:
+                      entity_id: climate.wohnzimmer
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: >-
+                              {{ states('input_number.climate_wohnzimmer_swing')
+                              | int(0) < 50 }}
+                        sequence:
+                          - delay: >-
+                              {{ states('input_number.climate_wohnzimmer_swing')
+                              | int(1) }}
+                          - service: climate.set_swing_mode
+                            data:
+                              swing_mode: "off"
+                            target:
+                              entity_id: climate.wohnzimmer
+                          - service: climate.set_swing_mode
+                            data:
+                              swing_mode: "off"
+                            target:
+                              entity_id: climate.wohnzimmer
+                  - delay: "00:00:01"
+          - service: input_boolean.turn_on
+            data: {}
+            target:
+              entity_id: input_boolean.climate_wohnzimmer_automation_running
       - conditions:
           - condition: trigger
             id: update_klima
@@ -173,9 +266,19 @@ action:
           - condition: trigger
             id: stop_klima
         sequence:
+          - service: timer.start
+            target:
+              entity_id: timer.timer_climate_wohnzimmer_start_failed_timeout
+            data:
+              duration: "00:00:20"
+          - service: climate.set_swing_mode
+            data:
+              swing_mode: "off"
+            target:
+              entity_id: climate.wohnzimmer
           - service: climate.set_hvac_mode
             data:
-              hvac_mode: 'off'
+              hvac_mode: "off"
             target:
               entity_id: climate.wohnzimmer
           - service: switch.turn_off
@@ -209,13 +312,24 @@ action:
             data: {}
             target:
               entity_id: input_boolean.pid_climate_enabled
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id: input_boolean.climate_wohnzimmer_automation_running
+          - service: timer.cancel
+            data: {}
+            target:
+              entity_id: timer.timer_climate_wohnzimmer_start_failed_timeout
       - conditions:
           - condition: trigger
             id: increase_water_boost
         sequence:
           - service: input_number.set_value
             data:
-              value: 20
+              value: >-
+                {{
+                states('input_number.climate_wohnzimmer_wasser_boosted_timeout')
+                | int(20) }}
             target:
               entity_id: input_number.climate_wohnzimmer_wasser_delay
           - service: input_boolean.turn_on
@@ -403,7 +517,7 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: '{{ is_state(''input_boolean.pid_climate_enabled'', ''off'') }}'
+                    value_template: "{{ is_state('input_boolean.pid_climate_enabled', 'off') }}"
                 sequence:
                   - service: pid_controller.reset_pid
                     data:
@@ -461,12 +575,58 @@ action:
               entity_id: switch.klima_wohnzimmer_wasser
       - conditions:
           - condition: trigger
+            id: check_start_climate_failed
+          - condition: template
+            value_template: >-
+              {{ (is_state('switch.klimaanlage', 'on') and
+              is_state('climate.wohnzimmer', 'off')) or
+              is_state('switch.klimaanlage', 'off') }}
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ is_state('switch.klimaanlage', 'on') and
+                      is_state('climate.wohnzimmer', 'off') }}
+                sequence:
+                  - service: switch.turn_off
+                    data: {}
+                    target:
+                      entity_id: switch.klimaanlage
+                  - service: timer.start
+                    target:
+                      entity_id: timer.timer_climate_wohnzimmer_start_failed_timeout
+                    data:
+                      duration: "00:00:20"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ is_state('switch.klimaanlage', 'off') }}"
+                sequence:
+                  - service: switch.turn_on
+                    data: {}
+                    target:
+                      entity_id: switch.klimaanlage
+          - delay: "00:00:15"
+          - service: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id: input_boolean.climate_wohnzimmer_automation_running
+      - conditions:
+          - condition: trigger
+            id: climate_reload
+        sequence:
+          - service: homeassistant.reload_config_entry
+            data: {}
+            target:
+              entity_id: climate.wohnzimmer
+      - conditions:
+          - condition: trigger
             id: ha_start
         sequence:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: '{{ is_state(''climate.wohnzimmer'', ''cool'') }}'
+                    value_template: "{{ is_state('climate.wohnzimmer', 'cool') }}"
                 sequence:
                   - delay: 1
                   - service: pid_controller.reset_pid
@@ -486,5 +646,5 @@ action:
                     target:
                       entity_id: switch.klima_wohnzimmer_wasser
 trace:
-  stored_traces: 20
+  stored_traces: 99
 mode: parallel
